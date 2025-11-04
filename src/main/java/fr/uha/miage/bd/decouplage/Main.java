@@ -96,17 +96,14 @@ public class Main {
 		try (JavaSparkContext sc = new JavaSparkContext(conf)) {
 			JavaRDD<Tuple4<String, String, Integer, String>> coupling2017 = decouplage(sc, infile, "2017");
 			JavaRDD<Tuple4<String, String, Integer, String>> coupling2022 = decouplage(sc, infile, "2022");
-			JavaPairRDD<Tuple2<String /* continent */, String /* Année */>, Tuple2<String /* country */, Integer /*gdp/ghg */>> mapedCoupling2022= coupling2022.
-					mapToPair(c -> new Tuple2<>(new Tuple2<>(c._1(), c._4()), new Tuple2<>(c._2(), c._3())));
-			JavaPairRDD<Tuple2<String /* continent */, String /* Année */>, Tuple2<String /* country */, Integer /*gdp/ghg */>> couplingKeyed = coupling2017
-					.mapToPair(c -> new Tuple2<>(new Tuple2<>(c._1(), c._4()), new Tuple2<>(c._2(), c._3()))).join(mapedCoupling2022);
-//					.reduceByKey((c1, c2) -> c1._2() >= c2._2() ? c1 : c2);
-			List<Tuple2<Tuple2<String /* continent */, String /* Année */>, Tuple2<String /* country */, Integer /*
-																													 * gdp
-																													 * /
-																													 * ghg
-																													 */>>> result = couplingKeyed
-					.collect();
+			// ! TODO : Il faut utiliser le pays comme clé
+			mapedCoupling2022= coupling2022.
+					mapToPair(c -> new Tuple2<>(c._2(), new Tuple2<>(c._1(),  c._3(), c._4())));
+			 JavaPairRDD<Tuple2<String, String>, Tuple2<Tuple2<String, Integer>, Tuple2<String, Integer>>> couplingKeyed = coupling2017
+					.mapToPair(c -> new Tuple2<>(new Tuple2<>(c._1(), c._4()), new Tuple2<>(c._2(), c._3())))
+					.join(mapedCoupling2022)
+					.reduceByKey((c1, c2) -> c1._2() >= c2._2() ? c1 : c2);
+			List<Tuple2<Tuple2<String /* continent */, String /* Année */>, Tuple2<String /* country */, Integer >>> result = couplingKeyed.collect();
 			result.forEach(System.out::println);
 
 		}
